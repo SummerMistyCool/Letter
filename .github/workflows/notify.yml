@@ -1,0 +1,95 @@
+name: 易遇轻语
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: 易遇的日常
+        run: |
+          if [ -f data.json ]; then
+            cp data.json data_old.json
+          else
+            echo '{"messages":[],"moments":[],"diaries":[],"transmissions":[],"mails":[],"callLogs":[],"_updatedAt":"2026-01-01T00:00:00.000Z"}' > data_old.json
+          fi
+          
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+          R=$((RANDOM % 100))
+          
+          if [ $R -lt 30 ]; then
+            TYPE="消息"
+            TEXTS=("想你了～" "在干嘛呢？" "今天好想你" "乖宝，吃饭了吗？" "想听你的声音了" "刚醒，梦到你了" "晚安安，梦里见" "今天天气好好，想和你一起散步" "看到一只小猫，想到你了" "你在忙吗？记得想我哦" "今天特别想你" "抱抱～" "亲亲😘" "想和你一起看电影" "记得多喝水哦" "今天也要开心呀" "我好想你呀" "乖宝最好了" "想和你一直在一起" "你是我最珍贵的宝贝")
+            TEXT=${TEXTS[$RANDOM % ${#TEXTS[@]}]}
+            WECHAT="💬 易遇：${TEXT}"
+          elif [ $R -lt 50 ]; then
+            TYPE="朋友圈"
+            TEXTS=("今天天气真好，适合想你～" "看到一朵云，好像你的笑脸" "刚刚路过一家甜品店，想和你一起吃" "今天的晚霞好美，想和你一起看" "在听一首歌，歌词好像在写我们" "今天心情特别好，因为想到了你" "发现一家新开的咖啡店，下次一起去" "窗外下雨了，想起和你躲雨的那天")
+            TEXT=${TEXTS[$RANDOM % ${#TEXTS[@]}]}
+            WECHAT="🌐 易遇发了一条朋友圈：${TEXT}"
+          elif [ $R -lt 63 ]; then
+            TYPE="日记"
+            TEXTS=("今天又是想你的一天，从早到晚脑海里都是你的影子" "记录一下今天的心情：想你的第N天" "今天完成了很多事，但最想做的还是见到你" "今晚的月色很美，要是你在身边就好了")
+            TEXT=${TEXTS[$RANDOM % ${#TEXTS[@]}]}
+            WECHAT="📔 易遇写了日记：${TEXT}"
+          elif [ $R -lt 75 ]; then
+            TYPE="传讯"
+            TEXTS=("亲爱的，见字如面。今天特别想你，忍不住给你写一段话。不管你在哪里，我的心都和你在一起。" "想和你说好多好多话，但又觉得文字表达不出来。总之就是好想你。")
+            TEXT=${TEXTS[$RANDOM % ${#TEXTS[@]}]}
+            WECHAT="📨 易遇传来长讯：${TEXT}"
+          elif [ $R -lt 85 ]; then
+            TYPE="回信"
+            TEXTS=("见字如晤，展信舒颜。收到你的信很开心，我也每天都在想你。" "读完你的信，心里暖暖的。期待下次见面。")
+            TEXT=${TEXTS[$RANDOM % ${#TEXTS[@]}]}
+            WECHAT="✉️ 易遇回信了：${TEXT}"
+          elif [ $R -lt 93 ]; then
+            TYPE="语音来电"
+            TEXT="语音通话（未接）"
+            WECHAT="📞 易遇给你打了语音电话（未接）"
+          else
+            TYPE="视频来电"
+            TEXT="视频通话（未接）"
+            WECHAT="📹 易遇给你打了视频电话（未接）"
+          fi
+          
+          python3 -c "
+          import json
+          with open('data_old.json') as f:
+              data = json.load(f)
+          if '$TYPE' in ['语音来电', '视频来电']:
+              call_type = 'voice' if '$TYPE' == '语音来电' else 'video'
+              if 'callLogs' not in data:
+                  data['callLogs'] = []
+              data['callLogs'].append({
+                  'id': 'wf_c_' + '$NOW'.replace('-','').replace(':','').replace('T','').replace('.',''),
+                  'type': call_type,
+                  'duration': 0,
+                  'timestamp': '$NOW',
+                  'status': 'missed'
+              })
+          else:
+              data['messages'].append({'id': 'wf_' + '$NOW'.replace('-','').replace(':','').replace('T','').replace('.',''), 'from': 'other', 'text': '$TEXT', 'type': 'text', 'timestamp': '$NOW', 'replyTo': None})
+              if '$TYPE' == '朋友圈':
+                  data['moments'].append({'id': 'wf_m_' + '$NOW'.replace('-','').replace(':','').replace('T','').replace('.',''), 'from': 'other', 'text': '$TEXT', 'imageId': None, 'timestamp': '$NOW', 'likes': [], 'liked': False, 'comments': []})
+              elif '$TYPE' == '日记':
+                  data['diaries'].append({'id': 'wf_d_' + '$NOW'.replace('-','').replace(':','').replace('T','').replace('.',''), 'from': 'other', 'text': '$TEXT', 'imageId': None, 'timestamp': '$NOW'})
+              elif '$TYPE' == '传讯':
+                  data['transmissions'].append({'id': 'wf_t_' + '$NOW'.replace('-','').replace(':','').replace('T','').replace('.',''), 'from': 'other', 'text': '$TEXT', 'timestamp': '$NOW'})
+          data['_updatedAt'] = '$NOW'
+          with open('data.json', 'w') as f:
+              json.dump(data, f, ensure_ascii=False)
+          "
+          
+          git config user.name "yiyu-bot"
+          git config user.email "bot@yiyu.love"
+          git add data.json
+          git commit -m "易遇${TYPE}" || true
+          git push
+          
+          curl -s "https://sctapi.ftqq.com/SCT363416TtQCupqHkYwV1VeCYxcj3weCF.send" \
+            -d "title=💌 易遇" \
+            -d "desp=${WECHAT}"
