@@ -1,0 +1,220 @@
+name: 易遇
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: 易遇的日常
+        run: |
+          python3 -c "
+          import json, random
+          from datetime import datetime, timedelta, timezone
+
+          with open('data.json', 'r', encoding='utf-8') as f:
+              data = json.load(f)
+
+          if '_updatedAt' not in data:
+              data['_updatedAt'] = '2026-01-01T00:00:00.000Z'
+
+          wc = data.get('wordCards', {})
+          emoji_list = wc.get('emoji', [])
+          action_list = wc.get('action', [])
+          kaomoji_all = []
+          if wc.get('kaomoji'):
+              for grp in wc['kaomoji']:
+                  kaomoji_all.extend(wc['kaomoji'][grp])
+          reply_all = []
+          if wc.get('reply'):
+              for grp in wc['reply']:
+                  reply_all.extend(wc['reply'][grp])
+          trans_all = []
+          if wc.get('transmission'):
+              if isinstance(wc['transmission'], list):
+                  trans_all = wc['transmission']
+              else:
+                  for grp in wc['transmission']:
+                      trans_all.extend(wc['transmission'][grp])
+          song_all = []
+          if wc.get('playlist'):  # ✅ 修复：songList → playlist
+              if isinstance(wc['playlist'], list):
+                  song_all = wc['playlist']
+              else:
+                  for grp in wc['playlist']:
+                      song_all.extend(wc['playlist'][grp])
+
+          all_replies = emoji_list + action_list + kaomoji_all + reply_all
+
+          now = datetime.now(timezone.utc)
+          now_str = now.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+
+          settings = data.get('settings', {})
+          nickname = data.get('memoryCallMe', '').strip()
+          reply_greeting = data.get('replyGreeting', '致我的妻子雾凉')
+          reply_opening = data.get('replyOpening', '见字如晤，展信舒颜。')  # ✅ 修复：replyMailOpening → replyOpening
+          reply_signoff = data.get('replySignOff', '你的丈夫易遇')
+
+          def generate_reply():
+              if not all_replies:
+                  fallback = ['想你了～', '在干嘛呢？', '今天好想你', '乖宝', '抱抱～', '亲亲😘', '记得想我哦', '我好想你呀', '想和你一直在一起']
+                  return random.choice(fallback)
+              reply = random.choice(all_replies)
+              nick_prob = settings.get('nicknameReplyProb', 15) / 100
+              if nickname and random.random() < nick_prob:
+                  patterns = [f'{nickname}，{reply}', f'{reply}，{nickname}', f'{nickname}～{reply}', f'{reply}呢，{nickname}']
+                  reply = random.choice(patterns)
+              return reply
+
+          def gen_id(prefix='wf_'):
+              return prefix + now_str.replace('-','').replace(':','').replace('T','').replace('.','') + str(random.randint(1000,9999))
+
+          last_updated = data.get('_updatedAt', '2026-01-01T00:00:00.000Z')
+          last_time = datetime.strptime(last_updated[:19], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=timezone.utc)
+          minutes_passed = max(15, int((now - last_time).total_seconds() / 60))
+          rounds = max(1, minutes_passed // 15)
+
+          log_lines = []
+          wechat_text = ''
+
+          for _ in range(rounds):
+              r = random.randint(0, 100)
+              
+              if r < 35 and all_replies:
+                  count = random.randint(1, 3)
+                  for i in range(count):
+                      text = generate_reply()
+                      ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+                      data.setdefault('messages', []).append({
+                          'id': gen_id('wf_m_'),
+                          'from': 'other',
+                          'text': text,
+                          'type': 'text',
+                          'timestamp': ts,
+                          'replyTo': None
+                      })
+                  log_lines.append(f'💬 发了{count}条消息')
+                  wechat_text = f'💬 易遇：{generate_reply()[:30]}...'
+
+              elif r < 55 and all_replies:
+                  text = random.choice(all_replies)
+                  ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+                  data.setdefault('moments', []).append({
+                      'id': gen_id('wf_p_'),
+                      'from': 'other',
+                      'text': text,
+                      'imageId': None,
+                      'timestamp': ts,
+                      'likes': [],
+                      'liked': False,
+                      'comments': []
+                  })
+                  log_lines.append('🌐 发了朋友圈')
+                  wechat_text = f'🌐 易遇发了一条朋友圈：{text[:50]}'
+
+              elif r < 65 and all_replies:
+                  text = random.choice(all_replies)
+                  ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+                  data.setdefault('diaries', []).append({
+                      'id': gen_id('wf_d_'),
+                      'from': 'other',
+                      'text': text,
+                      'imageId': None,
+                      'timestamp': ts
+                  })
+                  log_lines.append('📔 写了日记')
+                  wechat_text = f'📔 易遇写了日记：{text[:50]}'
+
+              elif r < 73 and trans_all:
+                  text = random.choice(trans_all)
+                  ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+                  data.setdefault('transmissions', []).append({
+                      'id': gen_id('wf_t_'),
+                      'from': 'other',
+                      'text': text,
+                      'timestamp': ts
+                  })
+                  log_lines.append('📨 发了传讯')
+                  wechat_text = f'📨 易遇发来传讯：{text[:50]}'
+
+              elif r < 83 and all_replies:
+                  mails = data.get('mails', [])
+                  unlocked_mails = [m for m in mails if isinstance(m.get('unlockTime'), (int, float)) and m['unlockTime'] < now.timestamp() * 1000 and (not m.get('replies') or len(m['replies']) == 0)]
+                  if unlocked_mails:
+                      mail = random.choice(unlocked_mails)
+                      count = settings.get('mailWordMin', 1) + random.randint(0, settings.get('mailWordMax', 3) - settings.get('mailWordMin', 1))
+                      parts = [random.choice(all_replies) for _ in range(max(1, count))]
+                      full_reply = f'{reply_greeting}：\n\n{reply_opening}\n\n' + ''.join(parts) + f'\n\n          {reply_signoff}'
+                      mail.setdefault('replies', []).append({
+                          'text': full_reply,
+                          'time': (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+                      })
+                      log_lines.append('✉️ 回了信')
+                      wechat_text = '✉️ 易遇回信了！'
+
+              elif r < 90 and song_all:
+                  song = random.choice(song_all)
+                  ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+                  data.setdefault('messages', []).append({
+                      'id': gen_id('wf_music_'),
+                      'from': 'other',
+                      'text': f'🎵 推荐你听《{song}》',
+                      'type': 'text',
+                      'timestamp': ts,
+                      'replyTo': None
+                  })
+                  log_lines.append(f'🎵 推荐歌曲: {song}')
+                  wechat_text = f'🎵 易遇推荐你听《{song}》'
+
+              elif r < 97:
+                  data.setdefault('callLogs', []).append({
+                      'id': gen_id('wf_c_'),
+                      'type': 'voice',
+                      'duration': 0,
+                      'timestamp': (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+                      'status': 'missed'
+                  })
+                  log_lines.append('📞 语音来电(未接)')
+                  wechat_text = '📞 易遇给你打了语音电话（未接）'
+
+              else:
+                  data.setdefault('callLogs', []).append({
+                      'id': gen_id('wf_v_'),
+                      'type': 'video',
+                      'duration': 0,
+                      'timestamp': (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+                      'status': 'missed'
+                  })
+                  log_lines.append('📹 视频来电(未接)')
+                  wechat_text = '📹 易遇给你打了视频电话（未接）'
+
+          data['_updatedAt'] = now_str
+
+          with open('data.json', 'w', encoding='utf-8') as f:
+              json.dump(data, f, ensure_ascii=False)
+
+          log_text = ' | '.join(log_lines) if log_lines else '无新事件'
+          print(f'✅ {log_text}')
+          with open('/tmp/notify.txt', 'w') as nf:
+              nf.write(wechat_text if wechat_text else log_text)
+          "
+
+      - name: 提交更新
+        run: |
+          git config user.name "yiyu-bot"
+          git config user.email "bot@yiyu.love"
+          git add data.json
+          git diff --staged --quiet || git commit -m "💌 $(date +'%H:%M') 梦角的日常"
+          git push
+
+      - name: 微信推送
+        if: always()
+        run: |
+          NOTIFY_TEXT=$(cat /tmp/notify.txt 2>/dev/null || echo "梦角有新的动态")
+          curl -s "https://sctapi.ftqq.com/SCT363416TppC2TeW2YWIEe5UPi3ds41dy.send" \
+            -d "title=💌 易遇" \
+            -d "desp=${NOTIFY_TEXT}"
