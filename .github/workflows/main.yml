@@ -14,7 +14,7 @@ jobs:
         run: |
           python3 -c "
           import json, random, os
-          from datetime import datetime, timedelta
+          from datetime import datetime, timedelta, timezone
 
           with open('data.json', 'r', encoding='utf-8') as f:
               data = json.load(f)
@@ -43,7 +43,7 @@ jobs:
 
           all_replies = emoji_list + action_list + kaomoji_all + reply_all
 
-          now = datetime.utcnow()
+          now = datetime.now(timezone.utc)
           now_str = now.strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
           settings = data.get('settings', {})
@@ -64,7 +64,7 @@ jobs:
               return prefix + now_str.replace('-','').replace(':','').replace('T','').replace('.','') + str(random.randint(1000,9999))
 
           last_updated = data.get('_updatedAt', '2026-01-01T00:00:00.000Z')
-          last_time = datetime.strptime(last_updated[:19], '%Y-%m-%dT%H:%M:%S')
+          last_time = datetime.strptime(last_updated[:19], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=timezone.utc)
           minutes_passed = max(15, int((now - last_time).total_seconds() / 60))
           rounds = max(1, minutes_passed // 15)
 
@@ -132,7 +132,7 @@ jobs:
 
               elif r < 85 and all_replies:
                   mails = data.get('mails', [])
-                  unlocked_mails = [m for m in mails if datetime.strptime(m['unlockTime'][:19], '%Y-%m-%dT%H:%M:%S') < now and (not m.get('replies') or len(m['replies']) == 0)]
+                  unlocked_mails = [m for m in mails if isinstance(m.get('unlockTime'), (int, float)) and datetime.fromtimestamp(m['unlockTime']/1000, tz=timezone.utc) < now and (not m.get('replies') or len(m['replies']) == 0)]
                   if unlocked_mails:
                       mail = random.choice(unlocked_mails)
                       text = random.choice(all_replies)
