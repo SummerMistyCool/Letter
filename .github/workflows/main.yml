@@ -33,6 +33,10 @@ jobs:
           if wc.get('reply'):
               for grp in wc['reply']:
                   reply_all.extend(wc['reply'][grp])
+          music_all = []
+          if wc.get('music'):
+              for grp in wc['music']:
+                  music_all.extend(wc['music'][grp])
           trans_all = []
           if wc.get('transmission'):
               if isinstance(wc['transmission'], list):
@@ -142,7 +146,23 @@ jobs:
                       })
                       log_lines.append('✉️ 回了信')
 
-              elif r < 92:
+              elif r < 90 and music_all:
+                  song = random.choice(music_all)
+                  ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+                  data.setdefault('messages', []).append({
+                      'id': gen_id('wf_music_'),
+                      'from': 'other',
+                      'text': '',
+                      'type': 'music_recommend',
+                      'songName': song,
+                      'artist': '',
+                      'musicId': '',
+                      'timestamp': ts,
+                      'replyTo': None
+                  })
+                  log_lines.append(f'🎵 推荐歌曲: {song}')
+
+              elif r < 97:
                   data.setdefault('callLogs', []).append({
                       'id': gen_id('wf_c_'),
                       'type': 'voice',
@@ -169,6 +189,8 @@ jobs:
 
           log_text = ' | '.join(log_lines) if log_lines else '无新事件'
           print(f'✅ {log_text}')
+          with open('/tmp/notify.txt', 'w') as nf:
+              nf.write(log_text)
           "
 
       - name: 提交更新
@@ -178,3 +200,12 @@ jobs:
           git add data.json
           git diff --staged --quiet || git commit -m "💌 $(date +'%H:%M') 梦角的日常"
           git push
+
+      - name: 微信推送
+        if: always()
+        run: |
+          NOTIFY_TEXT=$(cat /tmp/notify.txt 2>/dev/null || echo "无新事件")
+          curl -s "http://www.pushplus.plus/send" \
+            -d "token=a2053f9a7dd849bf87d14b89166258e7" \
+            -d "title=💌 易遇轻语" \
+            -d "content=梦角有新的动态啦~ ${NOTIFY_TEXT}"
