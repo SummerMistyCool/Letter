@@ -88,7 +88,7 @@ jobs:
           for _ in range(rounds):
               r = random.randint(0, 100)
               
-              if r < 30 and all_replies:
+              if r < 28 and all_replies:
                   count = random.randint(1, 3)
                   for i in range(count):
                       text = generate_reply()
@@ -104,7 +104,7 @@ jobs:
                   log_lines.append(f'💬 发了{count}条消息')
                   wechat_text = f'💬 易遇：{generate_reply()[:30]}...'
 
-              elif r < 48 and all_replies:
+              elif r < 44 and all_replies:
                   text = random.choice(all_replies)
                   ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
                   data.setdefault('moments', []).append({
@@ -120,7 +120,7 @@ jobs:
                   log_lines.append('🌐 发了朋友圈')
                   wechat_text = f'🌐 易遇发了一条朋友圈：{text[:50]}'
 
-              elif r < 56 and all_replies:
+              elif r < 52 and all_replies:
                   text = random.choice(all_replies)
                   ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
                   data.setdefault('diaries', []).append({
@@ -133,7 +133,7 @@ jobs:
                   log_lines.append('📔 写了日记')
                   wechat_text = f'📔 易遇写了日记：{text[:50]}'
 
-              elif r < 63 and trans_all:
+              elif r < 58 and trans_all:
                   text = random.choice(trans_all)
                   ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
                   data.setdefault('transmissions', []).append({
@@ -145,7 +145,7 @@ jobs:
                   log_lines.append('📨 发了传讯')
                   wechat_text = f'📨 易遇发来传讯：{text[:50]}'
 
-              elif r < 70 and all_replies:
+              elif r < 64 and all_replies:
                   mails = data.get('mails', [])
                   unlocked_mails = [m for m in mails if isinstance(m.get('unlockTime'), (int, float)) and m['unlockTime'] < now.timestamp() * 1000 and (not m.get('replies') or len(m['replies']) == 0)]
                   if unlocked_mails:
@@ -160,7 +160,7 @@ jobs:
                       log_lines.append('✉️ 回了信')
                       wechat_text = '✉️ 易遇回信了！'
 
-              elif r < 76 and song_all:
+              elif r < 70 and song_all:
                   song = random.choice(song_all)
                   ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
                   data.setdefault('messages', []).append({
@@ -174,7 +174,7 @@ jobs:
                   log_lines.append(f'🎵 推荐歌曲: {song}')
                   wechat_text = f'🎵 易遇推荐你听《{song}》'
 
-              elif r < 82 and quibbles_all:
+              elif r < 76 and quibbles_all:
                   text = random.choice(quibbles_all)
                   ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
                   data.setdefault('thoughts', []).append({
@@ -185,7 +185,7 @@ jobs:
                   log_lines.append('🍀 发了吐槽')
                   wechat_text = f'🍀 易遇吐槽：{text[:50]}'
 
-              elif r < 93:
+              elif r < 92:
                   data.setdefault('callLogs', []).append({
                       'id': gen_id('wf_c_'),
                       'type': 'voice',
