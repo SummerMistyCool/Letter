@@ -174,16 +174,18 @@ jobs:
                   log_lines.append(f'🎵 推荐歌曲: {song}')
                   wechat_text = f'🎵 易遇推荐你听《{song}》'
 
-              elif r < 76 and quibbles_all:
-                  text = random.choice(quibbles_all)
-                  ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
-                  data.setdefault('thoughts', []).append({
-                      'id': gen_id('wf_th_'),
-                      'text': text,
-                      'timestamp': ts
-                  })
-                  log_lines.append('🍀 发了吐槽')
-                  wechat_text = f'🍀 易遇吐槽：{text[:50]}'
+              elif r < 76:
+                  thought_pool = quibbles_all if quibbles_all else all_replies
+                  if thought_pool:
+                      text = random.choice(thought_pool)
+                      ts = (now - timedelta(minutes=random.randint(0, minutes_passed))).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+                      data.setdefault('thoughts', []).append({
+                          'id': gen_id('wf_th_'),
+                          'text': text,
+                          'timestamp': ts
+                      })
+                      log_lines.append('🍀 发了吐槽')
+                      wechat_text = f'🍀 易遇吐槽：{text[:50]}'
 
               elif r < 92:
                   data.setdefault('callLogs', []).append({
