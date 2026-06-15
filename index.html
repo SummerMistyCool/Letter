@@ -514,7 +514,7 @@
   <div class="mini-call video" id="videoMiniCall"><div class="mini-call-avatar"></div><span class="mini-call-name">易遇</span><span class="mini-call-dot"></span><span class="mini-call-time" id="videoMiniTime">00:00</span><button class="mini-call-hangup" id="videoMiniHangup">✕</button></div>
 <script>
   (() => {
-    const APP_VERSION = '7.3.5';
+    const APP_VERSION = '7.3.6';
     const DB_NAME = 'YiYuQingYu';
     const DB_VERSION = 6;
     let db = null;
@@ -782,8 +782,18 @@ async function renderTransmissions(reset = true) {
     if (tAvatar) { var tUrl = t.from === 'me' ? cachedMyAvatarUrl : cachedPartnerAvatarUrl; if (tUrl) { tAvatar.style.backgroundImage = 'url(' + tUrl + ')'; tAvatar.style.backgroundSize = 'cover'; } }
     fragment.appendChild(row);
   }
-  if (reset) { transmissionList.appendChild(fragment); await updateAllAvatars(); requestAnimationFrame(() => { transmissionList.scrollTop = 99999999; }); } 
-  else { const prevH = transmissionList.scrollHeight; transmissionList.insertBefore(fragment, transmissionList.firstChild); transmissionList.scrollTop = transmissionList.scrollHeight - prevH; }
+  if (reset) { 
+    transmissionList.appendChild(fragment); 
+    await updateAllAvatars(); 
+    requestAnimationFrame(() => { 
+      transmissionList.scrollTop = transmissionList.scrollHeight; 
+      setTimeout(() => { transmissionList.scrollTop = transmissionList.scrollHeight; }, 200);
+    }); 
+  } else { 
+    const prevH = transmissionList.scrollHeight; 
+    transmissionList.insertBefore(fragment, transmissionList.firstChild); 
+    transmissionList.scrollTop = transmissionList.scrollHeight - prevH; 
+  }
   if (startIdx === 0) transAllLoaded = true; 
 }
 async function loadMoreTransmissions() { if (transLoading || transAllLoaded) return; transLoading = true; await renderTransmissions(false); transLoading = false; }
@@ -814,10 +824,16 @@ function startCall(type) {
   const callNameEl = cw.querySelector('.call-name'); if (callNameEl) callNameEl.textContent = getPartnerDisplayName();
   if (activeCall && activeCall !== type) {
     const prevType = activeCall; const prevSeconds = callSeconds;
+    const oldCw = document.getElementById(prevType === 'voice' ? 'voiceCallWindow' : 'videoCallWindow');
+    const oldMc = document.getElementById(prevType === 'voice' ? 'voiceMiniCall' : 'videoMiniCall');
+    if (oldCw) oldCw.style.display = 'none';
+    if (oldMc) oldMc.style.display = 'none';
     if (!data.callLogs) data.callLogs = [];
     data.callLogs.push({ id: Date.now().toString()+Math.random().toString(36).substring(2), type: prevType, duration: prevSeconds, timestamp: Date.now()-prevSeconds*1000, status: 'switched' });
-    save(); activeCall = type; callSeconds = prevSeconds; isCallMinimized = false;
+    save(); activeCall = type; isCallMinimized = false;
     updateCallTimeDisplay();
+    const callTimeEl = cw.querySelector('.call-time');
+    if (callTimeEl) callTimeEl.textContent = formatCallTime(callSeconds);
     if (callAutoEndTimer) { clearInterval(callAutoEndTimer); callAutoEndTimer = null; }
     startCallAutoEndCheck(); startSwitchToVideoCheck(); return;
   }
@@ -827,7 +843,7 @@ function startCall(type) {
   const waitSecMax = (s.callWaitSecMax !== undefined) ? s.callWaitSecMax : 10;
   const waitTime = waitSecMin * 1000 + Math.random() * (waitSecMax * 1000 - waitSecMin * 1000);
   activeCall = callType;
-  const callTimeEl = cw.querySelector('.call-time'); if (callTimeEl) callTimeEl.innerHTML = '等待接受邀请<span class="call-waiting-dots">.</span><span class="call-waiting-dots">.</span><span class="call-waiting-dots">.</span>';
+  const callTimeEl2 = cw.querySelector('.call-time'); if (callTimeEl2) callTimeEl2.innerHTML = '等待接受邀请<span class="call-waiting-dots">.</span><span class="call-waiting-dots">.</span><span class="call-waiting-dots">.</span>';
   setTimeout(async () => {
     if (!activeCall || activeCall !== callType) return;
     const rejectProb = (data.settings && data.settings.callRejectProb !== undefined) ? data.settings.callRejectProb / 100 : 0.15;
@@ -842,7 +858,7 @@ function startCall(type) {
       if (reply === '等下打给你哦' || reply === '等下打给你') { const min = (data.settings.callBackMin || 1) * 60000; const max = (data.settings.callBackMax || 5) * 60000; const cbDelay = min + Math.random() * (max - min); setTimeout(() => { if (!activeCall && data.incomingCallEnabled !== false) { incomingCallType = callType; incomingTitle.textContent = callType === 'voice' ? '📞 语音来电' : '📹 视频来电'; incomingName.textContent = getPartnerDisplayName(); incomingCallDialog.className = 'incoming-call-dialog ' + callType; incomingAccept.textContent = callType === 'voice' ? '📞 接听' : '📹 接听'; incomingCallOverlay.classList.add('show'); } }, cbDelay); }
       save(); appendMessage(newMsg); activeCall = null; return;
     }
-    isCallMinimized = false; const callTimeEl2 = cw.querySelector('.call-time'); if (callTimeEl2) callTimeEl2.textContent = '00:00';
+    isCallMinimized = false; const callTimeEl3 = cw.querySelector('.call-time'); if (callTimeEl3) callTimeEl3.textContent = '00:00';
     updateAllAvatars(); startCallTimer(); makeDraggable(cw); if (mc) makeDraggable(mc);
     startCallAutoEndCheck(); startSwitchToVideoCheck();
   }, waitTime);
