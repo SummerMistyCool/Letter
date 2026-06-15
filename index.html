@@ -514,7 +514,7 @@
   <div class="mini-call video" id="videoMiniCall"><div class="mini-call-avatar"></div><span class="mini-call-name">易遇</span><span class="mini-call-dot"></span><span class="mini-call-time" id="videoMiniTime">00:00</span><button class="mini-call-hangup" id="videoMiniHangup">✕</button></div>
   <script>
   (() => {
-    const APP_VERSION = '7.3.2';
+    const APP_VERSION = '7.3.3';
     const DB_NAME = 'YiYuQingYu';
     const DB_VERSION = 6;
     let db = null;
@@ -540,6 +540,9 @@
     let msgLoadCount = 3;
     let msgAllLoaded = false;
     let msgsLoading = false;
+    let transLoadCount = 3;
+    let transAllLoaded = false;
+    let transLoading = false;
     const $ = (id) => document.getElementById(id);
     const bodyEl = $('bodyEl'), msgList = $('msgList'), textInput = $('textInput'), sendBtn = $('sendMessage'), stickerToggle = $('stickerToggle'), albumBtn = $('albumBtn'), menuTrigger = $('menuTrigger'), closeMenu = $('closeMenu'), chatScreen = $('chatScreen'), menuScreen = $('menuScreen'), pname = $('pname'), replyBar = $('replyBar'), replyLabel = $('replyLabel'), clearReplyBtn = $('clearReply'), dayNightToggle = $('dayNightToggle'), pickerModal = $('pickerModal'), cameraBtn = $('cameraBtn'), galleryBtn = $('galleryBtn'), cancelPicker = $('cancelPicker'), stickerDrawerModal = $('stickerDrawerModal'), stickerGrid = $('stickerGrid'), stickerModalClose = $('stickerModalClose'), stickerPickerModal = $('stickerPickerModal'), stickerGalleryBtn = $('stickerGalleryBtn'), cancelStickerPicker = $('cancelStickerPicker'), voiceCallBtn = $('voiceCallBtn'), videoCallBtn = $('videoCallBtn'), voiceCallWindow = $('voiceCallWindow'), videoCallWindow = $('videoCallWindow'), voiceCallTime = $('voiceCallTime'), videoCallTime = $('videoCallTime'), voiceMinimize = $('voiceMinimize'), videoMinimize = $('videoMinimize'), voiceHangup = $('voiceHangup'), videoHangup = $('videoHangup'), voiceMiniCall = $('voiceMiniCall'), videoMiniCall = $('videoMiniCall'), voiceMiniTime = $('voiceMiniTime'), videoMiniTime = $('videoMiniTime'), voiceMiniHangup = $('voiceMiniHangup'), videoMiniHangup = $('videoMiniHangup'), momentsScreen = $('momentsScreen'), momentsList = $('momentsList'), momentsBack = $('momentsBack'), momentsAdd = $('momentsAdd'), momentsTopBg = $('momentsTopBg'), momentsTopAvatar = $('momentsTopAvatar'), momentsTopName = $('momentsTopName'), momentsTopBio = $('momentsTopBio'), publishOverlay = $('publishOverlay'), publishText = $('publishText'), publishImgPreview = $('publishImgPreview'), publishImg = $('publishImg'), removePublishImg = $('removePublishImg'), publishImgBtn = $('publishImgBtn'), publishCancel = $('publishCancel'), publishSubmit = $('publishSubmit'), publishPickerModal = $('publishPickerModal'), publishCameraBtn = $('publishCameraBtn'), publishGalleryBtn = $('publishGalleryBtn'), cancelPublishPicker = $('cancelPublishPicker'), mailScreen = $('mailScreen'), mailList = $('mailList'), mailBack = $('mailBack'), mailAdd = $('mailAdd'), mailWrite = $('mailWrite'), mailText = $('mailText'), mailUnlockTime = $('mailUnlockTime'), mailWriteBack = $('mailWriteBack'), mailSend = $('mailSend'), diaryScreen = $('diaryScreen'), diaryList = $('diaryList'), diaryBack = $('diaryBack'), diaryAdd = $('diaryAdd'), diaryWrite = $('diaryWrite'), diaryText = $('diaryText'), diaryImgPreview = $('diaryImgPreview'), diaryImg = $('diaryImg'), diaryRemoveImg = $('diaryRemoveImg'), diaryImgBtn = $('diaryImgBtn'), diarySave = $('diarySave'), diaryPickerModal = $('diaryPickerModal'), diaryCameraBtn = $('diaryCameraBtn'), diaryGalleryBtn = $('diaryGalleryBtn'), cancelDiaryPicker = $('cancelDiaryPicker'), transmissionScreen = $('transmissionScreen'), transmissionList = $('transmissionList'), transmissionBack = $('transmissionBack'), transmissionInput = $('transmissionInput'), sendTransmission = $('sendTransmission'), decideScreen = $('decideScreen'), decideBack = $('decideBack'), decideYesNoInput = $('decideYesNoInput'), decideYesNoBtn = $('decideYesNoBtn'), decideCustomQuestion = $('decideCustomQuestion'), decideCustomBtn = $('decideCustomBtn'), addOptionBtn = $('addOptionBtn'), customOptions = $('customOptions'), anniversaryScreen = $('anniversaryScreen'), anniversaryList = $('anniversaryList'), anniversaryBack = $('anniversaryBack'), anniversaryAdd = $('anniversaryAdd'), anniversaryOverlay = $('anniversaryOverlay'), anniversaryNameInput = $('anniversaryNameInput'), anniversaryDateInput = $('anniversaryDateInput'), anniversaryCancel = $('anniversaryCancel'), anniversarySubmit = $('anniversarySubmit'), callLogScreen = $('callLogScreen'), callLogList = $('callLogList'), callLogBack = $('callLogBack'), memoryScreen = $('memoryScreen'), memoryBack = $('memoryBack'), memoryAvatar = $('memoryAvatar'), changeAvatarBtn = $('changeAvatarBtn'), memoryRealName = $('memoryRealName'), memoryNickname = $('memoryNickname'), memoryCallMe = $('memoryCallMe'), memoryBioInput = $('memoryBioInput'), myMemoryAvatar = $('myMemoryAvatar'), changeMyAvatarBtn = $('changeMyAvatarBtn'), myNameInput = $('myNameInput'), myBioInput = $('myBioInput'), mailGreetingInput = $('mailGreetingInput'), myOpeningInput = $('myOpeningInput'), mySignatureInput = $('mySignatureInput'), replyGreetingInput = $('replyGreetingInput'), replyOpeningInput = $('replyOpeningInput'), replySignOffInput = $('replySignOffInput'), mailPreview = $('mailPreview'), replyPreview = $('replyPreview'), memorySaveBtn = $('memorySaveBtn'), statsScreen = $('statsScreen'), statsList = $('statsList'), statsBack = $('statsBack'), wordcardScreen = $('wordcardScreen'), wordcardList = $('wordcardList'), wordcardBack = $('wordcardBack'), settingsScreen = $('settingsScreen'), settingsList = $('settingsList'), settingsBack = $('settingsBack'), headerAvatar = $('headerAvatar'), headerInfo = $('headerInfo'), patOverlay = $('patOverlay'), patAvatar = $('patAvatar'), patName = $('patName'), incomingCallOverlay = $('incomingCallOverlay'), incomingCallDialog = $('incomingCallDialog'), incomingAvatar = $('incomingAvatar'), incomingTitle = $('incomingTitle'), incomingName = $('incomingName'), incomingAccept = $('incomingAccept'), incomingReject = $('incomingReject'), notificationBar = $('notificationBar'), notifAvatar = $('notifAvatar'), notifText = $('notifText'), notifAccept = $('notifAccept'), notifReject = $('notifReject'), chatBgPreview = $('chatBgPreview'), changeChatBgBtn = $('changeChatBgBtn'), saveChatBgBtn = $('saveChatBgBtn'), momentsBgPreview = $('momentsBgPreview'), changeMomentsBgBtn = $('changeMomentsBgBtn'), saveMomentsBgBtn = $('saveMomentsBgBtn'), voiceBgPreview = $('voiceBgPreview'), changeVoiceBgBtn = $('changeVoiceBgBtn'), saveVoiceBgBtn = $('saveVoiceBgBtn'), videoBgPreview = $('videoBgPreview'), changeVideoBgBtn = $('changeVideoBgBtn'), saveVideoBgBtn = $('saveVideoBgBtn'), musicCoverPreview = $('musicCoverPreview'), changeMusicCoverBtn = $('changeMusicCoverBtn'), saveMusicCoverBtn = $('saveMusicCoverBtn'), musicScreen = $('musicScreen'), musicBack = $('musicBack'), musicCover = $('musicCover'), musicName = $('musicName'), musicArtist = $('musicArtist'), musicProgressBar = $('musicProgressBar'), musicPrev = $('musicPrev'), musicPlay = $('musicPlay'), musicNext = $('musicNext'), musicPlaylist = $('musicPlaylist'), musicHistoryList = $('musicHistoryList'), miniMusicPlayer = $('miniMusicPlayer'), miniMusicInfo = $('miniMusicInfo'), miniMusicPrev = $('miniMusicPrev'), miniMusicPlay = $('miniMusicPlay'), miniMusicNext = $('miniMusicNext'), miniMusicClose = $('miniMusicClose'), lyricsOverlay = $('lyricsOverlay'), lyricsTitle = $('lyricsTitle'), lyricsText = $('lyricsText'), lyricsPrev = $('lyricsPrev'), lyricsPlay = $('lyricsPlay'), lyricsNext = $('lyricsNext'), lyricsClose = $('lyricsClose'), thoughtsScreen = $('thoughtsScreen'), thoughtsList = $('thoughtsList'), thoughtsBack = $('thoughtsBack'), statusPoolRow = $('statusPoolRow'), customStatusEl = $('customStatusEl'), stickerBatchDeleteBtn = $('stickerBatchDeleteBtn');
 
@@ -745,7 +748,40 @@ function showNotification(text, page) { if (data.notifyEnabled === false) return
 function handleNotificationClick(page) { notificationBar.classList.remove('show'); notificationBar.style.display = 'none'; closeAllScreens(); if (page === 'moments') { openMoments(); } else { chatScreen.style.display = 'flex'; setTimeout(() => { msgList.scrollTop = 99999999; }, 200); setTimeout(() => { msgList.scrollTop = 99999999; }, 600); if (page === 'diary') openDiaryList(); else if (page === 'mail') openMailList(); else if (page === 'transmission') openTransmission(); else if (page === 'thoughts') openThoughts(); } }
 function closeAllScreens() { const screens = [momentsScreen, mailScreen, mailWrite, diaryScreen, diaryWrite, decideScreen, anniversaryScreen, callLogScreen, memoryScreen, statsScreen, wordcardScreen, settingsScreen, transmissionScreen, musicScreen, thoughtsScreen, menuScreen]; screens.forEach(s => { if (s) s.classList.remove('show'); }); chatScreen.style.display = 'flex'; setTimeout(() => { msgList.scrollTop = 99999999; }, 200); setTimeout(() => { msgList.scrollTop = 99999999; }, 600); }
 function getPatIcon(action) { const icons = { '戳了戳': '👉🏻', '捏了捏': '🤏', '亲了亲': '💋', '抱了抱': '🤗', '摸了摸': '🫳', '和': '💕', '给': '🫰🏻', '牵了牵': '🫱🏻‍🫲🏼' }; return icons[action] || ''; }
-    async function renderTransmissions() { const displayName = getPartnerDisplayName(); const myName = getMyName(); transmissionList.innerHTML = ''; const sorted = [...data.transmissions].sort((a,b) => a.timestamp - b.timestamp); const recent = sorted.slice(-3); for (const t of recent) { const me = t.from === 'me'; const row = document.createElement('div'); row.className = 'msg-row ' + (me ? 'me' : 'other'); row.innerHTML = '<div class="msg-avatar"></div><div class="msg-content"><div class="bubble">' + esc(t.text).replace(/\n/g,'<br>') + '</div><div class="msg-meta"><span>' + (me ? myName : displayName) + '</span><span>' + fullTfmt(t.timestamp) + '</span></div></div>'; transmissionList.appendChild(row); } await updateAllAvatars(); requestAnimationFrame(() => { transmissionList.scrollTop = 99999999; }); }
+    async function renderTransmissions(reset = true) { 
+  const displayName = getPartnerDisplayName(); 
+  const myName = getMyName(); 
+  if (reset) { transmissionList.innerHTML = ''; transAllLoaded = false; }
+  const total = data.transmissions.length;
+  const currentCount = reset ? 0 : transmissionList.querySelectorAll('.msg-row').length;
+  const startIdx = reset ? Math.max(0, total - transLoadCount) : Math.max(0, total - currentCount - transLoadCount);
+  const msgs = [...data.transmissions].sort((a,b) => a.timestamp - b.timestamp).slice(startIdx, reset ? total : total - currentCount);
+  if (msgs.length === 0) { transAllLoaded = true; return; }
+  const fragment = document.createDocumentFragment();
+  for (const t of msgs) { 
+    const me = t.from === 'me'; 
+    const row = document.createElement('div'); 
+    row.className = 'msg-row ' + (me ? 'me' : 'other'); 
+    row.innerHTML = '<div class="msg-avatar"></div><div class="msg-content"><div class="bubble">' + esc(t.text).replace(/\n/g,'<br>') + '</div><div class="msg-meta"><span>' + (me ? myName : displayName) + '</span><span>' + fullTfmt(t.timestamp) + '</span></div></div>'; 
+    if (reset) { fragment.appendChild(row); } else { fragment.insertBefore(row, fragment.firstChild); }
+  }
+  if (reset) { 
+    transmissionList.appendChild(fragment); 
+    await updateAllAvatars(); 
+    requestAnimationFrame(() => { transmissionList.scrollTop = 99999999; }); 
+  } else { 
+    const prevH = transmissionList.scrollHeight; 
+    transmissionList.insertBefore(fragment, transmissionList.firstChild); 
+    transmissionList.scrollTop = transmissionList.scrollHeight - prevH; 
+  }
+  if (startIdx === 0) transAllLoaded = true; 
+}
+async function loadMoreTransmissions() {
+  if (transLoading || transAllLoaded) return;
+  transLoading = true;
+  await renderTransmissions(false);
+  transLoading = false;
+}
 function openTransmission() { lastScreen = 'menu'; chatScreen.style.display = 'none'; menuScreen.classList.add('hidden'); transmissionScreen.classList.add('show'); renderTransmissions(); }
 function closeTransmission() { transmissionScreen.classList.remove('show'); if (lastScreen === 'menu') { menuScreen.classList.remove('hidden'); } else { chatScreen.style.display = 'flex'; setTimeout(() => { msgList.scrollTop = 99999999; }, 200); setTimeout(() => { msgList.scrollTop = 99999999; }, 600); } } transmissionBack.onclick = closeTransmission;
 async function sendTransmissionMsg() { const t = transmissionInput.value.trim(); if (!t) return; data.transmissions.push({ id: Date.now().toString()+Math.random().toString(36).substring(2), from: 'me', text: t, timestamp: Date.now() }); save(); transmissionInput.value = ''; await renderTransmissions(); showCustomAlert('传讯已发送', '#e3f2fd', '#1565c0'); scheduleTransmissionReply(); }
@@ -768,54 +804,39 @@ function startCall(type) {
   videoCallWindow = document.getElementById('videoCallWindow');
   voiceMiniCall = document.getElementById('voiceMiniCall');
   videoMiniCall = document.getElementById('videoMiniCall');
+  const cw = type === 'voice' ? voiceCallWindow : videoCallWindow;
+  const mc = type === 'voice' ? voiceMiniCall : videoMiniCall;
+  if (!cw) return;
+  cw.style.display = 'flex';
+  cw.style.visibility = 'visible';
+  cw.style.opacity = '1';
+  cw.style.zIndex = '30';
+  const ww = window.innerWidth, wh = window.innerHeight;
+  const cww = Math.round(ww * 0.75), chh = Math.round(wh * 0.55);
+  cw.style.width = cww + 'px'; cw.style.height = chh + 'px';
+  cw.style.transform = 'translate(' + Math.round((ww - cww) / 2) + 'px, ' + Math.round((wh - chh) / 2 - 30) + 'px)';
+  const callNameEl = cw.querySelector('.call-name'); if (callNameEl) callNameEl.textContent = getPartnerDisplayName();
+  if (mc) mc.style.display = 'none';
+  updateAllAvatars(); makeDraggable(cw); if (mc) makeDraggable(mc);
   if (activeCall && activeCall !== type) {
     const prevType = activeCall; const prevSeconds = callSeconds;
     if (!data.callLogs) data.callLogs = [];
     data.callLogs.push({ id: Date.now().toString()+Math.random().toString(36).substring(2), type: prevType, duration: prevSeconds, timestamp: Date.now()-prevSeconds*1000, status: 'switched' });
-    save(); if (voiceCallWindow) voiceCallWindow.style.display='none'; if (videoCallWindow) videoCallWindow.style.display='none'; if (voiceMiniCall) voiceMiniCall.style.display='none'; if (videoMiniCall) videoMiniCall.style.display='none';
-    activeCall = type; callSeconds = prevSeconds; isCallMinimized = false;
-    const cw = type === 'voice' ? voiceCallWindow : videoCallWindow;
-    const mc = type === 'voice' ? voiceMiniCall : videoMiniCall;
-    if (!cw) return;
-    const ww = window.innerWidth, wh = window.innerHeight;
-    const cww = Math.round(ww * 0.75), chh = Math.round(wh * 0.55);
-    cw.style.width = cww + 'px'; cw.style.height = chh + 'px'; cw.style.left = ''; cw.style.top = '';
-    cw.style.transform = 'translate(' + Math.round((ww - cww) / 2) + 'px, ' + Math.round((wh - chh) / 2 - 30) + 'px)';
-    cw.style.display = 'flex'; if (mc) mc.style.display = 'none';
-    const displayName = getPartnerDisplayName(); const callNameEl = cw.querySelector('.call-name'); if (callNameEl) callNameEl.textContent = displayName;
-    updateAllAvatars(); makeDraggable(cw); makeDraggable(mc); updateCallTimeDisplay();
+    save(); activeCall = type; callSeconds = prevSeconds; isCallMinimized = false;
+    updateCallTimeDisplay();
     if (callAutoEndTimer) { clearInterval(callAutoEndTimer); callAutoEndTimer = null; }
     startCallAutoEndCheck(); startSwitchToVideoCheck(); return;
   }
   if (incomingCallType) {
     activeCall = type; isCallMinimized = false; incomingCallType = null;
-    const cw = type === 'voice' ? voiceCallWindow : videoCallWindow;
-    const mc = type === 'voice' ? voiceMiniCall : videoMiniCall;
-    if (!cw) return;
-    const ww = window.innerWidth, wh = window.innerHeight;
-    const cww = Math.round(ww * 0.75), chh = Math.round(wh * 0.55);
-    cw.style.width = cww + 'px'; cw.style.height = chh + 'px'; cw.style.left = ''; cw.style.top = '';
-    cw.style.transform = 'translate(' + Math.round((ww - cww) / 2) + 'px, ' + Math.round((wh - chh) / 2 - 30) + 'px)';
-    cw.style.display = 'flex'; if (mc) mc.style.display = 'none';
-    const displayName = getPartnerDisplayName(); const callNameEl = cw.querySelector('.call-name'); if (callNameEl) callNameEl.textContent = displayName;
-    updateAllAvatars(); startCallTimer(); makeDraggable(cw); makeDraggable(mc);
-    startCallAutoEndCheck(); startSwitchToVideoCheck(); return;
+    startCallTimer(); startCallAutoEndCheck(); startSwitchToVideoCheck(); return;
   }
   const callType = type; const s = data.settings;
   const waitSecMin = (s.callWaitSecMin !== undefined) ? s.callWaitSecMin : 1;
   const waitSecMax = (s.callWaitSecMax !== undefined) ? s.callWaitSecMax : 10;
   const waitTime = waitSecMin * 1000 + Math.random() * (waitSecMax * 1000 - waitSecMin * 1000);
-  const cw = callType === 'voice' ? voiceCallWindow : videoCallWindow;
-  const mc = callType === 'voice' ? voiceMiniCall : videoMiniCall;
-  if (!cw) return;
-  const ww = window.innerWidth, wh = window.innerHeight;
-  const cww = Math.round(ww * 0.75), chh = Math.round(wh * 0.55);
-  cw.style.width = cww + 'px'; cw.style.height = chh + 'px'; cw.style.left = ''; cw.style.top = '';
-  cw.style.transform = 'translate(' + Math.round((ww - cww) / 2) + 'px, ' + Math.round((wh - chh) / 2 - 30) + 'px)';
-  cw.style.display = 'flex'; if (mc) mc.style.display = 'none'; activeCall = callType;
-  const displayName = getPartnerDisplayName(); const callNameEl = cw.querySelector('.call-name'); if (callNameEl) callNameEl.textContent = displayName;
+  activeCall = callType;
   const callTimeEl = cw.querySelector('.call-time'); if (callTimeEl) callTimeEl.innerHTML = '等待接受邀请<span class="call-waiting-dots">.</span><span class="call-waiting-dots">.</span><span class="call-waiting-dots">.</span>';
-  updateAllAvatars(); makeDraggable(cw); makeDraggable(mc);
   setTimeout(async () => {
     if (!activeCall || activeCall !== callType) return;
     const rejectProb = (data.settings && data.settings.callRejectProb !== undefined) ? data.settings.callRejectProb / 100 : 0.15;
@@ -826,11 +847,11 @@ function startCall(type) {
       const reply = replies[Math.floor(Math.random() * replies.length)];
       const newMsg = { id: Date.now().toString()+Math.random().toString(36).substring(2), from: 'other', text: reply, type: 'text', timestamp: Date.now(), replyTo: null };
       data.messages.push(newMsg);
-      if (reply === '等下打给你哦' || reply === '等下打给你') { const min = (data.settings.callBackMin || 1) * 60000; const max = (data.settings.callBackMax || 5) * 60000; const cbDelay = min + Math.random() * (max - min); setTimeout(() => { if (!activeCall && data.incomingCallEnabled !== false) { incomingCallType = reply === '等下打给你哦' ? 'voice' : 'video'; incomingTitle.textContent = incomingCallType === 'voice' ? '📞 语音来电' : '📹 视频来电'; incomingName.textContent = displayName; incomingCallDialog.className = 'incoming-call-dialog ' + incomingCallType; incomingAccept.textContent = incomingCallType === 'voice' ? '📞 接听' : '📹 接听'; incomingCallOverlay.classList.add('show'); } }, cbDelay); }
+      if (reply === '等下打给你哦' || reply === '等下打给你') { const min = (data.settings.callBackMin || 1) * 60000; const max = (data.settings.callBackMax || 5) * 60000; const cbDelay = min + Math.random() * (max - min); setTimeout(() => { if (!activeCall && data.incomingCallEnabled !== false) { incomingCallType = reply === '等下打给你哦' ? 'voice' : 'video'; incomingTitle.textContent = incomingCallType === 'voice' ? '📞 语音来电' : '📹 视频来电'; incomingName.textContent = getPartnerDisplayName(); incomingCallDialog.className = 'incoming-call-dialog ' + incomingCallType; incomingAccept.textContent = incomingCallType === 'voice' ? '📞 接听' : '📹 接听'; incomingCallOverlay.classList.add('show'); } }, cbDelay); }
       save(); appendMessage(newMsg); activeCall = null; return;
     }
     isCallMinimized = false; const callTimeEl2 = cw.querySelector('.call-time'); if (callTimeEl2) callTimeEl2.textContent = '00:00';
-    updateAllAvatars(); startCallTimer(); makeDraggable(cw); makeDraggable(mc);
+    updateAllAvatars(); startCallTimer(); makeDraggable(cw); if (mc) makeDraggable(mc);
     startCallAutoEndCheck(); startSwitchToVideoCheck();
   }, waitTime);
 }
@@ -1061,8 +1082,8 @@ memorySaveBtn.onclick = async function(){ if (tempAvatarData) { if (data.memoryA
       menuTrigger.onclick = () => { lastScreen = 'chat'; chatScreen.style.display = 'none'; menuScreen.classList.remove('hidden'); buildMenu(); };
       closeMenu.onclick = () => { menuScreen.classList.add('hidden'); chatScreen.style.display = 'flex'; setTimeout(() => { msgList.scrollTop = 99999999; }, 200); setTimeout(() => { msgList.scrollTop = 99999999; }, 600); };
       dayNightToggle.onclick = toggleNightMode;
-      voiceCallBtn.onclick = () => { menuScreen.classList.add('hidden'); chatScreen.style.display = 'flex'; voiceCallWindow = document.getElementById('voiceCallWindow'); voiceMiniCall = document.getElementById('voiceMiniCall'); startCall('voice'); };
-      videoCallBtn.onclick = () => { menuScreen.classList.add('hidden'); chatScreen.style.display = 'flex'; videoCallWindow = document.getElementById('videoCallWindow'); videoMiniCall = document.getElementById('videoMiniCall'); startCall('video'); };
+      voiceCallBtn.onclick = () => { startCall('voice'); };
+      videoCallBtn.onclick = () => { startCall('video'); };
       voiceMinimize.onclick = minimizeCall; videoMinimize.onclick = minimizeCall;
       voiceHangup.onclick = endCall; videoHangup.onclick = endCall;
       voiceMiniHangup.onclick = endCall; videoMiniHangup.onclick = endCall;
@@ -1089,6 +1110,7 @@ memorySaveBtn.onclick = async function(){ if (tempAvatarData) { if (data.memoryA
       cancelDiaryPicker.onclick = hideDiaryPicker; diaryPickerModal.addEventListener('click', (e) => { if (e.target === diaryPickerModal) hideDiaryPicker(); });
 
       msgList.addEventListener('scroll', function() { if (msgList.scrollTop < 50 && !msgAllLoaded && !msgsLoading) { loadMoreMessages(); } }, { passive: true });
+      transmissionList.addEventListener('scroll', function() { if (transmissionList.scrollTop < 50 && !transAllLoaded && !transLoading) { loadMoreTransmissions(); } }, { passive: true });
 
       async function init() {
         await load();
