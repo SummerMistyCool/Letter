@@ -390,7 +390,6 @@
     .thought-card { background: #fff; border-radius: 14px; padding: 14px; border: 1px solid #e0d5c8; }
     .thought-text { font-size: 14px; color: #3a2a1a; line-height: 1.6; margin-bottom: 4px; display: flex; align-items: flex-start; gap: 6px; }
     .thought-time { font-size: 11px; color: #999; text-align: right; }
-    /* v7.3.1 性能优化：GPU 加速 + content-visibility */
     .messages > * { content-visibility: auto; contain-intrinsic-size: auto 80px; }
     .moments-list > * { content-visibility: auto; contain-intrinsic-size: auto 120px; }
     .diary-list > * { content-visibility: auto; contain-intrinsic-size: auto 100px; }
@@ -515,7 +514,7 @@
   <div class="mini-call video" id="videoMiniCall"><div class="mini-call-avatar"></div><span class="mini-call-name">易遇</span><span class="mini-call-dot"></span><span class="mini-call-time" id="videoMiniTime">00:00</span><button class="mini-call-hangup" id="videoMiniHangup">✕</button></div>
   <script>
   (() => {
-    const APP_VERSION = '7.3.1';
+    const APP_VERSION = '7.3.2';
     const DB_NAME = 'YiYuQingYu';
     const DB_VERSION = 6;
     let db = null;
@@ -538,7 +537,7 @@
     let cachedPartnerAvatarUrl = null, cachedMyAvatarUrl = null;
     let imageCache = {};
     let interruptedRecorded = false;
-    let msgLoadCount = 5;
+    let msgLoadCount = 3;
     let msgAllLoaded = false;
     let msgsLoading = false;
     const $ = (id) => document.getElementById(id);
@@ -572,7 +571,6 @@
       ['kaomoji', 'reply', 'transmission', 'playlist', 'quibbles'].forEach(key => { if (data.wordCards[key] && typeof data.wordCards[key] === 'object') { if (data.wordCards[key]['']) delete data.wordCards[key]['']; const cleaned = {}; for (const grp in data.wordCards[key]) { if (grp && grp.trim() && grp.length >= 1 && Array.isArray(data.wordCards[key][grp])) { const validItems = data.wordCards[key][grp].filter(item => item.length >= 1); if (validItems.length > 0) cleaned[grp] = validItems; } } data.wordCards[key] = cleaned; } });
       data.moments.forEach(m => { if (m.hasNewActivity === undefined) m.hasNewActivity = false; if (m.comments) m.comments.forEach(c => { if (!c.time) c.time = m.timestamp || Date.now(); }); });
       if (data.musicHistory && data.musicHistory.length > 0) { const seen = new Set(); data.musicHistory = data.musicHistory.filter(h => { const key = h.name + '|' + h.id; if (seen.has(key)) return false; seen.add(key); return true; }); }
-      // v7.3.1: 统一所有时间戳为数字类型
       data.messages.forEach(m => { if (typeof m.timestamp === 'string') m.timestamp = new Date(m.timestamp).getTime(); });
       data.moments.forEach(m => { if (typeof m.timestamp === 'string') m.timestamp = new Date(m.timestamp).getTime(); });
       data.diaries.forEach(d => { if (typeof d.timestamp === 'string') d.timestamp = new Date(d.timestamp).getTime(); });
@@ -630,9 +628,9 @@ async function render() { const displayName = getPartnerDisplayName(); pname.tex
 async function renderMessages(reset = true) {
   if (reset) { msgList.innerHTML = ''; lastMsgDate = ''; msgAllLoaded = false; }
   const total = data.messages.length;
-  const startIdx = reset ? Math.max(0, total - msgLoadCount) : Math.max(0, total - (msgList.querySelectorAll('.msg-row').length + msgList.querySelectorAll('.pat-record').length + msgList.querySelectorAll('.date-divider').length) - msgLoadCount);
-  const endIdx = reset ? total : total - (msgList.querySelectorAll('.msg-row').length + msgList.querySelectorAll('.pat-record').length + msgList.querySelectorAll('.date-divider').length);
-  const msgs = data.messages.slice(startIdx, endIdx);
+  const currentCount = reset ? 0 : msgList.querySelectorAll('.msg-row').length + msgList.querySelectorAll('.pat-record').length + msgList.querySelectorAll('.date-divider').length;
+  const startIdx = reset ? Math.max(0, total - msgLoadCount) : Math.max(0, total - currentCount - msgLoadCount);
+  const msgs = data.messages.slice(startIdx, reset ? total : total - currentCount);
   if (msgs.length === 0) { msgAllLoaded = true; return; }
   const fragment = document.createDocumentFragment();
   const imageLoadTasks = [];
@@ -657,24 +655,27 @@ async function renderMessages(reset = true) {
     row.querySelector('[data-act="delete"]').onclick = async () => { if (m.imageId) await dbDelete('images', m.imageId); if (m.imageIds) for (const iid of m.imageIds) { if (iid) await dbDelete('images', iid); } data.messages = data.messages.filter(x => x.id !== m.id); if (replyTarget === m.id) clearReply(); row.remove(); save(); };
     if (m.from === 'other') { row.querySelector('.msg-avatar').onclick = () => openPatPanel(); }
   }
-  const chunks = []; const chunkSize = 20; const children = Array.from(fragment.children);
-  for (let i = 0; i < children.length; i += chunkSize) { chunks.push(children.slice(i, i + chunkSize)); }
-  let chunkIndex = 0;
-  function renderChunk() {
-    if (chunkIndex < chunks.length) {
-      const chunk = chunks[chunkIndex]; const frag = document.createDocumentFragment();
-      chunk.forEach(el => frag.appendChild(el));
-      if (reset && chunkIndex === 0) { msgList.appendChild(frag); } else { msgList.insertBefore(frag, msgList.firstChild); }
-      chunkIndex++;
-      requestAnimationFrame(renderChunk);
-    } else {
-      const rows = msgList.querySelectorAll('.msg-row'); rows.forEach(row => { const avatar = row.querySelector('.msg-avatar'); if (avatar) { const isMe = row.classList.contains('me'); const url = isMe ? cachedMyAvatarUrl : cachedPartnerAvatarUrl; if (url) { avatar.style.backgroundImage = 'url('+url+')'; avatar.style.backgroundSize = 'cover'; } } });
-      if (startIdx === 0) msgAllLoaded = true;
-      if (reset) { requestAnimationFrame(() => { msgList.scrollTop = 99999999; setTimeout(() => { msgList.scrollTop = 99999999; }, 400); }); }
-      Promise.all(imageLoadTasks).catch(() => {});
+  if (reset) {
+    const chunks = []; const chunkSize = 20; const children = Array.from(fragment.children);
+    for (let i = 0; i < children.length; i += chunkSize) { chunks.push(children.slice(i, i + chunkSize)); }
+    let chunkIndex = 0;
+    function renderChunk() {
+      if (chunkIndex < chunks.length) {
+        const chunk = chunks[chunkIndex]; const frag = document.createDocumentFragment();
+        chunk.forEach(el => frag.appendChild(el)); msgList.appendChild(frag); chunkIndex++;
+        requestAnimationFrame(renderChunk);
+      } else {
+        const rows = msgList.querySelectorAll('.msg-row'); rows.forEach(row => { const avatar = row.querySelector('.msg-avatar'); if (avatar) { const isMe = row.classList.contains('me'); const url = isMe ? cachedMyAvatarUrl : cachedPartnerAvatarUrl; if (url) { avatar.style.backgroundImage = 'url('+url+')'; avatar.style.backgroundSize = 'cover'; } } });
+        if (startIdx === 0) msgAllLoaded = true;
+        requestAnimationFrame(() => { msgList.scrollTop = 99999999; setTimeout(() => { msgList.scrollTop = 99999999; }, 400); });
+        Promise.all(imageLoadTasks).catch(() => {});
+      }
     }
+    requestAnimationFrame(renderChunk);
+  } else {
+    msgList.insertBefore(fragment, msgList.firstChild);
+    if (startIdx === 0) msgAllLoaded = true;
   }
-  requestAnimationFrame(renderChunk);
 }
 
 async function loadMoreMessages() {
@@ -687,7 +688,7 @@ async function loadMoreMessages() {
   const startIdx = Math.max(0, total - currentCount - msgLoadCount);
   const msgs = data.messages.slice(startIdx, total - currentCount);
   const fragment = document.createDocumentFragment();
-  for (const m of msgs) {
+  for (const m of msgs.reverse()) {
     const msgDate = new Date(m.timestamp).toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric' });
     if (msgDate !== lastMsgDate) { lastMsgDate = msgDate; const divider = document.createElement('div'); divider.className = 'date-divider'; divider.textContent = msgDate; fragment.insertBefore(divider, fragment.firstChild); }
     if (m.type === 'action') { const div = document.createElement('div'); div.className = 'pat-record'; div.innerHTML = esc(m.text) + '<span class="pat-time">' + tfmt(m.timestamp) + '</span>'; fragment.insertBefore(div, fragment.firstChild); continue; }
@@ -702,7 +703,7 @@ async function loadMoreMessages() {
   }
   msgList.insertBefore(fragment, msgList.firstChild);
   if (startIdx === 0) msgAllLoaded = true;
-  msgList.scrollTop = msgList.scrollHeight - prevScrollHeight;
+  requestAnimationFrame(() => { msgList.scrollTop = msgList.scrollHeight - prevScrollHeight; });
   msgsLoading = false;
 }
 
@@ -720,7 +721,7 @@ async function appendMessageElement(m, scroll = true) {
   row.querySelector('[data-act="quote"]').onclick = () => setReply(m.id);
   row.querySelector('[data-act="delete"]').onclick = async () => { if (m.imageId) await dbDelete('images', m.imageId); if (m.imageIds) for (const iid of m.imageIds) { if (iid) await dbDelete('images', iid); } data.messages = data.messages.filter(x => x.id !== m.id); if (replyTarget === m.id) clearReply(); row.remove(); save(); };
   if (m.from === 'other') { row.querySelector('.msg-avatar').onclick = () => openPatPanel(); }
-  if (scroll) { requestAnimationFrame(() => { msgList.scrollTop = msgList.scrollHeight; }); }
+  if (scroll) { requestAnimationFrame(() => { msgList.scrollTop = 99999999; setTimeout(() => { msgList.scrollTop = 99999999; }, 400); }); }
 }
 
 async function markAllMyMessagesRead() { let changed = false; data.messages.forEach(m => { if (m.from === 'me' && !m.read) { m.read = true; changed = true; } }); if (!changed) return; save(); document.querySelectorAll('.msg-row.me').forEach(row => { const meta = row.querySelector('.msg-meta'); if (meta && !meta.innerHTML.includes('✅已读')) { meta.innerHTML = '<span style="color:#4caf50;font-size:10px;">✅已读 </span>' + meta.innerHTML; } }); }
@@ -738,13 +739,13 @@ async function sendText(t) { if (!t || !t.trim()) return; t = t.trim(); if (/听
 function generateOneReply() { const wc = data.wordCards; const emojiList = wc.emoji || []; const actionList = wc.action || []; const kaomojiList = []; if (wc.kaomoji) for (const grp in wc.kaomoji) kaomojiList.push(...wc.kaomoji[grp]); const replyList = []; if (wc.reply) for (const grp in wc.reply) replyList.push(...wc.reply[grp]); const allReplies = [...emojiList, ...actionList, ...kaomojiList, ...replyList]; if (allReplies.length === 0) return null; var reply; const availablePools = []; if (emojiList.length > 0) availablePools.push(emojiList); if (actionList.length > 0) availablePools.push(actionList); if (kaomojiList.length > 0) availablePools.push(kaomojiList); if (replyList.length > 0) availablePools.push(replyList); const poolCount = 1 + Math.floor(Math.random() * Math.min(4, availablePools.length)); if (poolCount === 1) { reply = allReplies[Math.floor(Math.random() * allReplies.length)]; } else { const shuffledPools = [...availablePools].sort(() => Math.random() - 0.5); const selectedParts = []; for (let i = 0; i < poolCount; i++) { const pool = shuffledPools[i]; selectedParts.push(pool[Math.floor(Math.random() * pool.length)]); } for (let i = selectedParts.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [selectedParts[i], selectedParts[j]] = [selectedParts[j], selectedParts[i]]; } reply = selectedParts.join(''); } const nickProb = (data.settings && data.settings.nicknameReplyProb !== undefined) ? data.settings.nicknameReplyProb / 100 : 0.15; if (data.memoryCallMe && data.memoryCallMe.trim() && Math.random() < nickProb) { var callName = data.memoryCallMe.trim(); var patterns = [callName + '，' + reply, reply + '，' + callName, callName + '～' + reply, reply + '呢，' + callName]; reply = patterns[Math.floor(Math.random() * patterns.length)]; } return reply; }
 
 let autoReplyLock = false;
-async function autoReply() { if (autoReplyLock) return; autoReplyLock = true; try { markAllMyMessagesRead(); const s = data.settings || {}; const fastSec = (Number(s.replyFastestSec) || 3) * 1000; const slowMs = (Number(s.replySlowestMin) || 10) * 60000; const delay = fastSec + Math.random() * (slowMs - fastSec); await new Promise(r => setTimeout(r, Math.max(delay, 1000))); const minC = s.minConsecutiveReplies || 1; const maxC = s.maxConsecutiveReplies || 3; const count = minC + Math.floor(Math.random() * (maxC - minC + 1)); const newMsgs = []; for (let i = 0; i < count; i++) { const stickerProb = (s.stickerReplyProb !== undefined) ? s.stickerReplyProb / 100 : 0.10; if (data.stickers.length > 0 && Math.random() < stickerProb) { const stickerId = data.stickers[Math.floor(Math.random() * data.stickers.length)]; const stickerUrl = await getImageDataURL(stickerId); if (stickerUrl) { const imageId = 'sticker_reply_' + Date.now() + '_' + Math.random().toString(36).substring(2); await dbPut('images', { id: imageId, dataURL: stickerUrl }); imageCache[imageId] = stickerUrl; newMsgs.push({ id: Date.now().toString() + Math.random().toString(36).substring(2), from: 'other', text: stickerUrl, type: 'image', imageId: imageId, timestamp: Date.now(), replyTo: null }); } } else { const reply = generateOneReply(); if (!reply) { if (!localStorage.getItem('yiyu_nocards_shown')) { showCustomAlert('对方还没有字卡库，<br>去功能菜单添加短语吧～', '#fff3e0', '#e65100'); localStorage.setItem('yiyu_nocards_shown', '1'); } break; } let refId = null; const quoteProb = (s.quoteReplyProb !== undefined) ? s.quoteReplyProb / 100 : 0.30; if (data.messages.length > 0 && Math.random() < quoteProb) { const randomMsg = data.messages[Math.floor(Math.random() * data.messages.length)]; refId = randomMsg.id; } newMsgs.push({ id: Date.now().toString() + Math.random().toString(36).substring(2), from: 'other', text: reply, type: 'text', timestamp: Date.now(), replyTo: refId }); } if (i < count - 1) { await new Promise(r => setTimeout(r, 1200)); } } if (newMsgs.length > 0) { data.messages.push(...newMsgs); await save(); await renderMessages(); if (newMsgs.length === 1) { showNotification(newMsgs[0].text.slice(0, 20)); } else { showNotification('发来 ' + newMsgs.length + ' 条消息'); } } } finally { hideTypingIndicator(); autoReplyLock = false; } }
+async function autoReply() { if (autoReplyLock) return; autoReplyLock = true; try { markAllMyMessagesRead(); const s = data.settings || {}; const fastSec = (Number(s.replyFastestSec) || 3) * 1000; const slowMs = (Number(s.replySlowestMin) || 10) * 60000; const delay = fastSec + Math.random() * (slowMs - fastSec); await new Promise(r => setTimeout(r, Math.max(delay, 1000))); const minC = s.minConsecutiveReplies || 1; const maxC = s.maxConsecutiveReplies || 3; const count = minC + Math.floor(Math.random() * (maxC - minC + 1)); const newMsgs = []; for (let i = 0; i < count; i++) { const stickerProb = (s.stickerReplyProb !== undefined) ? s.stickerReplyProb / 100 : 0.10; if (data.stickers.length > 0 && Math.random() < stickerProb) { const stickerId = data.stickers[Math.floor(Math.random() * data.stickers.length)]; const stickerUrl = await getImageDataURL(stickerId); if (stickerUrl) { const imageId = 'sticker_reply_' + Date.now() + '_' + Math.random().toString(36).substring(2); await dbPut('images', { id: imageId, dataURL: stickerUrl }); imageCache[imageId] = stickerUrl; newMsgs.push({ id: Date.now().toString() + Math.random().toString(36).substring(2), from: 'other', text: stickerUrl, type: 'image', imageId: imageId, timestamp: Date.now(), replyTo: null }); } } else { const reply = generateOneReply(); if (!reply) { if (!localStorage.getItem('yiyu_nocards_shown')) { showCustomAlert('对方还没有字卡库，<br>去功能菜单添加短语吧～', '#fff3e0', '#e65100'); localStorage.setItem('yiyu_nocards_shown', '1'); } break; } let refId = null; const quoteProb = (s.quoteReplyProb !== undefined) ? s.quoteReplyProb / 100 : 0.30; if (data.messages.length > 0 && Math.random() < quoteProb) { const randomMsg = data.messages[Math.floor(Math.random() * data.messages.length)]; refId = randomMsg.id; } newMsgs.push({ id: Date.now().toString() + Math.random().toString(36).substring(2), from: 'other', text: reply, type: 'text', timestamp: Date.now(), replyTo: refId }); } if (i < count - 1) { await new Promise(r => setTimeout(r, 1200)); } } if (newMsgs.length > 0) { data.messages.push(...newMsgs); await save(); await renderMessages(); requestAnimationFrame(() => { msgList.scrollTop = 99999999; setTimeout(() => { msgList.scrollTop = 99999999; }, 400); }); if (newMsgs.length === 1) { showNotification(newMsgs[0].text.slice(0, 20)); } else { showNotification('发来 ' + newMsgs.length + ' 条消息'); } } } finally { hideTypingIndicator(); autoReplyLock = false; } }
 
 function showNotification(text, page) { if (data.notifyEnabled === false) return; if (document.visibilityState === 'visible' && chatScreen.style.display === 'flex') return; if (page === 'moments' && !momentsScreen.classList.contains('show')) return; notifAccept.style.display = 'none'; notifReject.style.display = 'none'; notifText.textContent = text; if (data.memoryAvatarId) { getImageDataURL(data.memoryAvatarId).then(url => { if (url) { notifAvatar.style.backgroundImage = 'url('+url+')'; notifAvatar.style.backgroundSize = 'cover'; } }); } notificationBar.classList.add('show'); notificationBar.style.display = 'flex'; notificationBar.onclick = () => { handleNotificationClick(page); }; if (page !== 'moments') { setTimeout(() => { notificationBar.classList.remove('show'); notificationBar.style.display = 'none'; }, 5000); } }
-function handleNotificationClick(page) { notificationBar.classList.remove('show'); notificationBar.style.display = 'none'; closeAllScreens(); if (page === 'moments') { openMoments(); } else { chatScreen.style.display = 'flex'; setTimeout(() => { msgList.scrollTop = 99999999; }, 200); if (page === 'diary') openDiaryList(); else if (page === 'mail') openMailList(); else if (page === 'transmission') openTransmission(); else if (page === 'thoughts') openThoughts(); } }
+function handleNotificationClick(page) { notificationBar.classList.remove('show'); notificationBar.style.display = 'none'; closeAllScreens(); if (page === 'moments') { openMoments(); } else { chatScreen.style.display = 'flex'; setTimeout(() => { msgList.scrollTop = 99999999; }, 200); setTimeout(() => { msgList.scrollTop = 99999999; }, 600); if (page === 'diary') openDiaryList(); else if (page === 'mail') openMailList(); else if (page === 'transmission') openTransmission(); else if (page === 'thoughts') openThoughts(); } }
 function closeAllScreens() { const screens = [momentsScreen, mailScreen, mailWrite, diaryScreen, diaryWrite, decideScreen, anniversaryScreen, callLogScreen, memoryScreen, statsScreen, wordcardScreen, settingsScreen, transmissionScreen, musicScreen, thoughtsScreen, menuScreen]; screens.forEach(s => { if (s) s.classList.remove('show'); }); chatScreen.style.display = 'flex'; setTimeout(() => { msgList.scrollTop = 99999999; }, 200); setTimeout(() => { msgList.scrollTop = 99999999; }, 600); }
 function getPatIcon(action) { const icons = { '戳了戳': '👉🏻', '捏了捏': '🤏', '亲了亲': '💋', '抱了抱': '🤗', '摸了摸': '🫳', '和': '💕', '给': '🫰🏻', '牵了牵': '🫱🏻‍🫲🏼' }; return icons[action] || ''; }
-    async function renderTransmissions() { const displayName = getPartnerDisplayName(); const myName = getMyName(); transmissionList.innerHTML = ''; const sorted = [...data.transmissions].sort((a,b) => b.timestamp - a.timestamp); for (const t of sorted) { const me = t.from === 'me'; const row = document.createElement('div'); row.className = 'msg-row ' + (me ? 'me' : 'other'); row.innerHTML = '<div class="msg-avatar"></div><div class="msg-content"><div class="bubble">' + esc(t.text).replace(/\n/g,'<br>') + '</div><div class="msg-meta"><span>' + (me ? myName : displayName) + '</span><span>' + fullTfmt(t.timestamp) + '</span></div></div>'; transmissionList.appendChild(row); } await updateAllAvatars(); requestAnimationFrame(() => { transmissionList.scrollTop = transmissionList.scrollHeight; }); }
+    async function renderTransmissions() { const displayName = getPartnerDisplayName(); const myName = getMyName(); transmissionList.innerHTML = ''; const sorted = [...data.transmissions].sort((a,b) => a.timestamp - b.timestamp); const recent = sorted.slice(-3); for (const t of recent) { const me = t.from === 'me'; const row = document.createElement('div'); row.className = 'msg-row ' + (me ? 'me' : 'other'); row.innerHTML = '<div class="msg-avatar"></div><div class="msg-content"><div class="bubble">' + esc(t.text).replace(/\n/g,'<br>') + '</div><div class="msg-meta"><span>' + (me ? myName : displayName) + '</span><span>' + fullTfmt(t.timestamp) + '</span></div></div>'; transmissionList.appendChild(row); } await updateAllAvatars(); requestAnimationFrame(() => { transmissionList.scrollTop = 99999999; }); }
 function openTransmission() { lastScreen = 'menu'; chatScreen.style.display = 'none'; menuScreen.classList.add('hidden'); transmissionScreen.classList.add('show'); renderTransmissions(); }
 function closeTransmission() { transmissionScreen.classList.remove('show'); if (lastScreen === 'menu') { menuScreen.classList.remove('hidden'); } else { chatScreen.style.display = 'flex'; setTimeout(() => { msgList.scrollTop = 99999999; }, 200); setTimeout(() => { msgList.scrollTop = 99999999; }, 600); } } transmissionBack.onclick = closeTransmission;
 async function sendTransmissionMsg() { const t = transmissionInput.value.trim(); if (!t) return; data.transmissions.push({ id: Date.now().toString()+Math.random().toString(36).substring(2), from: 'me', text: t, timestamp: Date.now() }); save(); transmissionInput.value = ''; await renderTransmissions(); showCustomAlert('传讯已发送', '#e3f2fd', '#1565c0'); scheduleTransmissionReply(); }
@@ -763,10 +764,10 @@ function stopCallTimer(){ if(callTimer){ clearInterval(callTimer); callTimer=nul
 function updateCallTimeDisplay(){ const t=formatCallTime(callSeconds); if(activeCall==='voice'){ voiceCallTime.textContent=t; voiceMiniTime.textContent=t; }else if(activeCall==='video'){ videoCallTime.textContent=t; videoMiniTime.textContent=t; } }
 
 function startCall(type) {
-  if (!voiceCallWindow) voiceCallWindow = document.getElementById('voiceCallWindow');
-  if (!videoCallWindow) videoCallWindow = document.getElementById('videoCallWindow');
-  if (!voiceMiniCall) voiceMiniCall = document.getElementById('voiceMiniCall');
-  if (!videoMiniCall) videoMiniCall = document.getElementById('videoMiniCall');
+  voiceCallWindow = document.getElementById('voiceCallWindow');
+  videoCallWindow = document.getElementById('videoCallWindow');
+  voiceMiniCall = document.getElementById('voiceMiniCall');
+  videoMiniCall = document.getElementById('videoMiniCall');
   if (activeCall && activeCall !== type) {
     const prevType = activeCall; const prevSeconds = callSeconds;
     if (!data.callLogs) data.callLogs = [];
@@ -1060,8 +1061,8 @@ memorySaveBtn.onclick = async function(){ if (tempAvatarData) { if (data.memoryA
       menuTrigger.onclick = () => { lastScreen = 'chat'; chatScreen.style.display = 'none'; menuScreen.classList.remove('hidden'); buildMenu(); };
       closeMenu.onclick = () => { menuScreen.classList.add('hidden'); chatScreen.style.display = 'flex'; setTimeout(() => { msgList.scrollTop = 99999999; }, 200); setTimeout(() => { msgList.scrollTop = 99999999; }, 600); };
       dayNightToggle.onclick = toggleNightMode;
-      voiceCallBtn.onclick = () => { menuScreen.classList.add('hidden'); chatScreen.style.display = 'flex'; if (!voiceCallWindow) voiceCallWindow = document.getElementById('voiceCallWindow'); startCall('voice'); };
-      videoCallBtn.onclick = () => { menuScreen.classList.add('hidden'); chatScreen.style.display = 'flex'; if (!videoCallWindow) videoCallWindow = document.getElementById('videoCallWindow'); startCall('video'); };
+      voiceCallBtn.onclick = () => { menuScreen.classList.add('hidden'); chatScreen.style.display = 'flex'; voiceCallWindow = document.getElementById('voiceCallWindow'); voiceMiniCall = document.getElementById('voiceMiniCall'); startCall('voice'); };
+      videoCallBtn.onclick = () => { menuScreen.classList.add('hidden'); chatScreen.style.display = 'flex'; videoCallWindow = document.getElementById('videoCallWindow'); videoMiniCall = document.getElementById('videoMiniCall'); startCall('video'); };
       voiceMinimize.onclick = minimizeCall; videoMinimize.onclick = minimizeCall;
       voiceHangup.onclick = endCall; videoHangup.onclick = endCall;
       voiceMiniHangup.onclick = endCall; videoMiniHangup.onclick = endCall;
